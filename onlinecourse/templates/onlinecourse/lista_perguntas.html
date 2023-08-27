@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lista de Perguntas</title>
+</head>
+<body>
+    <h1>Lista de Perguntas</h1>
+    <form method="post" action="{% url 'onlinecourse:lista_perguntas' %}">
+        {% csrf_token %}
+        <ul>
+            {% for pergunta in perguntas %}
+            <li>
+                <h3>{{ pergunta.texto_pergunta }}</h3>
+                <ul>
+                    {% for resposta in pergunta.resposta_set.all %}
+                    <li>
+                        <label>
+                            <input type="checkbox" name="respostas" value="{{ resposta.id }}">
+                            {{ resposta.texto_resposta }}
+                        </label>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Enviar Respostas</button>
+    </form>
+</body>
+</html>

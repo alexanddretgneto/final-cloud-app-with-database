@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Exam Submission Form</h2>
+<form method="post">
+  {% csrf_token %}
+  <!-- Render the questions and choices here -->
+  {% for question in course.lesson_set.all %}
+    <p>{{ question.title }}</p>
+    {% for choice in question.choice_set.all %}
+      <label>
+        <input type="checkbox" name="choice{{ choice.id }}" value="{{ choice.id }}">
+        {{ choice.choice_text }}
+      </label><br>
+    {% endfor %}
+    <hr>
+  {% endfor %}
+  <button type="submit">Submit Exam</button>
+</form>
+{% endblock %}

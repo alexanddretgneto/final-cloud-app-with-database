@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Exam Result</h2>
+<p><strong>Course:</strong> {{ course.name }}</p>
+<p><strong>Submission ID:</strong> {{ submission.id }}</p>
+<p><strong>Total Score:</strong> {{ total_score }}</p>
+<p><strong>Passed Exam:</strong> {% if passed_exam %}Yes{% else %}No{% endif %}</p>
+
+<h3>Question Results</h3>
+{% for result in question_results %}
+  <p><strong>Question:</strong> {{ result.question.title }}</p>
+  <p><strong>Selected Correct Answer:</strong> {% if result.selected_correct %}Yes{% else %}No{% endif %}</p>
+  <p><strong>Score:</strong> {{ result.score }}</p>
+  <hr>
+{% endfor %}
+
+<a href="{% url 'onlinecourse:course_details' course.id %}">Back to Course</a>
+{% endblock %}

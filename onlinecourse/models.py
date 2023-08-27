@@ -1,34 +1,26 @@
-import sys
-from django.utils.timezone import now
-try:
-    from django.db import models
-except Exception:
-    print("There was an error loading django modules. Do you have django installed?")
-    sys.exit()
-
+from django.db import models
 from django.conf import settings
-import uuid
+from django.utils.timezone import now
 
-
-# Instructor model
+# Modelo para instrutores
 class Instructor(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,  # Referência ao modelo de usuário do Django
+        on_delete=models.CASCADE,  # Se o usuário for excluído, exclua também este instrutor
     )
-    full_time = models.BooleanField(default=True)
-    total_learners = models.IntegerField()
+    full_time = models.BooleanField(default=True)  # Indica se é um instrutor em tempo integral
+    total_learners = models.IntegerField()  # Total de alunos do instrutor
 
     def __str__(self):
-        return self.user.username
+        return self.user.username  # Retorna o nome de usuário como representação textual
 
-
-# Learner model
+# Modelo para alunos/estudantes
 class Learner(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
+    # Opções para a ocupação do aluno
     STUDENT = 'student'
     DEVELOPER = 'developer'
     DATA_SCIENTIST = 'data_scientist'
@@ -45,40 +37,36 @@ class Learner(models.Model):
         choices=OCCUPATION_CHOICES,
         default=STUDENT
     )
-    social_link = models.URLField(max_length=200)
+    social_link = models.URLField(max_length=200)  # Link para mídias sociais do aluno
 
     def __str__(self):
-        return self.user.username + "," + \
-               self.occupation
+        return self.user.username + "," + self.occupation
 
-
-# Course model
+# Modelo para cursos
 class Course(models.Model):
     name = models.CharField(null=False, max_length=30, default='online course')
-    image = models.ImageField(upload_to='course_images/')
+    image = models.ImageField(upload_to='course_images/')  # Imagem associada ao curso
     description = models.CharField(max_length=1000)
-    pub_date = models.DateField(null=True)
-    instructors = models.ManyToManyField(Instructor)
+    pub_date = models.DateField(null=True)  # Data de publicação do curso
+    instructors = models.ManyToManyField(Instructor)  # Relacionamento muitos-para-muitos com instrutores
     users = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Enrollment')
-    total_enrollment = models.IntegerField(default=0)
-    is_enrolled = False
+    total_enrollment = models.IntegerField(default=0)  # Total de matrículas no curso
+    is_enrolled = models.BooleanField(default=False)  # Indica se o usuário está matriculado no curso
 
     def __str__(self):
-        return "Name: " + self.name + "," + \
-               "Description: " + self.description
+        return "Name: " + self.name + "," + "Description: " + self.description
 
-
-# Lesson model
+# Modelo para lições
 class Lesson(models.Model):
     title = models.CharField(max_length=200, default="title")
-    order = models.IntegerField(default=0)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    content = models.TextField()
+    order = models.IntegerField(default=0)  # Ordem da lição no curso
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Relacionamento com o curso
+    content = models.TextField()  # Conteúdo da lição
 
-
-# Enrollment model
-# <HINT> Once a user enrolled a class, an enrollment entry should be created between the user and course
-# And we could use the enrollment to track information such as exam submissions
+    def __str__(self):
+        return "Titulo: " + self.title 
+    
+# Modelo para matrículas/enrollments
 class Enrollment(models.Model):
     AUDIT = 'audit'
     HONOR = 'honor'
@@ -90,45 +78,50 @@ class Enrollment(models.Model):
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    date_enrolled = models.DateField(default=now)
-    mode = models.CharField(max_length=5, choices=COURSE_MODES, default=AUDIT)
-    rating = models.FloatField(default=5.0)
+    date_enrolled = models.DateField(default=now)  # Data de matrícula
+    mode = models.CharField(max_length=5, choices=COURSE_MODES, default=AUDIT)  # Modo da matrícula
+    rating = models.FloatField(default=5.0)  # Avaliação da matrícula
+
+# Modelo para perguntas/question
+class Question(models.Model):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)  # Relacionamento com a lição
+    question_text = models.TextField()  # Texto da pergunta
+    question_grade = models.FloatField()  # Nota/pontuação da pergunta
+
+    def is_get_score(self, selected_ids):
+        # Método para verificar se o aluno obteve a pontuação na pergunta
+        all_answers = self.choice_set.filter(is_correct=True).count()
+        selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
+        if all_answers == selected_correct:
+            return True
+        else:
+            return False
+
+# Modelo para opções de escolha
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)  # Relacionamento com a pergunta
+    choice_text = models.CharField(max_length=200)  # Texto da opção de escolha
+    is_correct = models.BooleanField(default=False)  # Indica se a opção é a correta
+
+# Modelo para submissões/submissions
+class Submission(models.Model):
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)  # Relacionamento com a matrícula
+    choices = models.ManyToManyField(Choice)  # Relacionamento muitos-para-muitos com as opções de escolha
+    # Outros campos e métodos que você deseja projetar
 
 
-# <HINT> Create a Question Model with:
-    # Used to persist question content for a course
-    # Has a One-To-Many (or Many-To-Many if you want to reuse questions) relationship with course
-    # Has a grade point for each question
-    # Has question content
-    # Other fields and methods you would like to design
-#class Question(models.Model):
-    # Foreign key to lesson
-    # question text
-    # question grade/mark
 
-    # <HINT> A sample model method to calculate if learner get the score of the question
-    #def is_get_score(self, selected_ids):
-    #    all_answers = self.choice_set.filter(is_correct=True).count()
-    #    selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
-    #    if all_answers == selected_correct:
-    #        return True
-    #    else:
-    #        return False
+class Pergunta(models.Model):
+    texto_pergunta = models.CharField(max_length=200)
 
+    def __str__(self):
+        return self.texto_pergunta
 
-#  <HINT> Create a Choice Model with:
-    # Used to persist choice content for a question
-    # One-To-Many (or Many-To-Many if you want to reuse choices) relationship with Question
-    # Choice content
-    # Indicate if this choice of the question is a correct one or not
-    # Other fields and methods you would like to design
-# class Choice(models.Model):
+class Resposta(models.Model):
+    pergunta = models.ForeignKey(Pergunta, on_delete=models.CASCADE)
+    texto_resposta = models.CharField(max_length=100)
+    correta = models.BooleanField(default=False)
 
-# <HINT> The submission model
-# One enrollment could have multiple submission
-# One submission could have multiple choices
-# One choice could belong to multiple submissions
-#class Submission(models.Model):
-#    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
-#    choices = models.ManyToManyField(Choice)
-#    Other fields and methods you would like to design
+    def __str__(self):
+        return self.texto_resposta
+
